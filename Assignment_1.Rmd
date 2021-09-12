@@ -1,0 +1,47 @@
+---
+title: "Assignment 1"
+author: "Julia Thacker"
+date: "9/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+cereal<-read.csv("cereal.csv")
+cereal
+```
+Named data frame "cereal" and read the csv file.
+Retrived data set from: https://perso.telecom-paristech.fr/eagan/class/igr204/datasets
+```{r}
+print(cereal$name[4])
+print(c(cereal$name[4],cereal$protein[4]))
+```
+Printed a specific variable.
+Printed the same variable with an additional statistic.
+```{r}
+print(cereal$name[1:7])
+```
+Printed the first 7 cereal names.
+```{r}
+class(cereal$calories[10])
+```
+Looked up the class of a particular variable.
+```{r}
+as.character(cereal$calories[10])
+```
+Changed the variable to show as a character.
+```{r}
+cereal$calories[10]*4
+```
+Multiplied the variable by 4.
+```{r}
+plot(cereal$fat[7])
+```
+Plotted one particular variable.
+```{r}
+plot(cereal$fat)
+```
+Plotted one variable for all types of cereal.
