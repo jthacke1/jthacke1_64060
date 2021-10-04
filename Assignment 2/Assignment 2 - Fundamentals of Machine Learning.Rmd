@@ -1,0 +1,83 @@
+---
+title: "Assignment 2"
+author: "Julia Thacker"
+date: "10/3/2021"
+output: html_document
+---
+Imported UniversalBank.csv
+```{r}
+m_UniversalBank<-select(Age,Experience,Income,Family,CCAvg,Education,Mortgage,"Personal Loan","Securities Account","CD Account",Online,CreditCard)
+```
+Created a data set excluding the ID and Zip code
+```{r}
+m_UniversalBank$Education<-as.factor(m_UniversalBank$Education)
+class(m_UniversalBank$Education)
+```
+Converted the education data into factors and checked their class
+```{r}
+dummy_model<-dummyVars(~Education,data=m_UniversalBank)
+head(predict(dummy_model,m_UniversalBank))
+```
+Transformed Education data into dummy variables
+```{r}
+Education <- dummyVars(~Education,m_UniversalBank)
+EduDV<-predict(Education,m_UniversalBank)
+m_UniversalBank<-cbind(m_UniversalBank,EduDV)
+m_UniversalBank<-m_UniversalBank[,-6]
+```
+Added the three education columns that are now dummy variables, into the original data set and removed the original education column
+```{r}
+set.seed(123)
+Train_Index=createDataPartition(m_UniversalBank$Age,p=0.6,list=FALSE)
+Train_Data=m_UniversalBank[Train_Index,]
+Validation_Data=Train_Data[-Train_Index,]
+```
+Partitioned the data into 60% training data and 40% validation
+```{r}
+train.norm.df<-Train_Data
+valid.norm.df<-Validation_Data
+```
+Copied the original data
+```{r}
+norm.values<-preProcess(Train_Data[,1:14],method=c("center","scale"))
+train.norm.df[,1:14]<-predict(norm.values,Train_Data[,1:14])
+valid.norm.df[,1:14]<-predict(norm.values,Validation_Data[,1:14])
+```
+Normalized the training and validation data
+```{r}
+customer.df<-data.frame(Age=40,Experience=10,Income=84,Family=2,CCAvg=2,Mortgage=0,"Securities Account"=0,"CD Account"=0,Online=1,CreditCard=1,Education.1=0,Education.2=1,Education.3=0)
+```
+Added a data frame for the example customer test data
+```{r}
+nn<-knn(train=train.norm.df[,c(1:6,8:14)],test=customer.df,cl=train.norm.df[,7],k=1,prob=TRUE)
+```
+Performed k-NN classification with default cutoff value of 0.5.
+Result of 3.11 with a success class of 1, meaning that this customer would be accepted for a personal loan.
+```{r}
+accuracy.df<-data.frame(k=seq(1,14,1),accuracy=rep(0,14))
+for(i in 1:14){
+  knn.pred<-knn(train.norm.df[,c(1:6,8:14)],valid.norm.df[,c(1:6,8:14)],
+                    cl=train.norm.df[,7],k=i)
+accuracy.df[i,2]<-confusionMatrix(knn.pred,valid.norm.df[,7]$overall[1])
+}
+accuracy.df
+```
+Calculate choice of K
+Show confusion matrix
+```{r}
+customer2.df<-data.frame(Age=40,Experience=10,Income=84,Family=2,CCAvg=2,Mortgage=0,"Securities Account"=0,"CD Account"=0,Online=1,CreditCard=1,Education.1=0,Education.2=1,Education.3=0)
+```
+Added a data frame for the second example customer test data set
+```{r}
+nn2<-knn(train=train.norm.df[,c(1:6,8:14)],test=customer2.df,cl=train.norm.df[,7],k=3,prob=TRUE)
+```
+Classify customer number 2 using best k
+```{r}
+Train_Index=createDataPartition(m_UniversalBank$Age,p=0.5,list=FALSE)
+Test_Index=createDataPartition(m_UniversalBank$Age,p=0.3,list=FALSE)
+Validation_Index=createDataPartition(m_UniversalBank$Age,p=0.2,list=FALSE)
+Train_Data=m_UniversalBank[Train_Index,]
+Test_Data=m_UniversalBank[Test_Index,]
+Validation_Data=m_UniversalBank[Validation_Index,]
+```
+Repartitioned the dat into 50% training, 30% validation, and 20% test data
