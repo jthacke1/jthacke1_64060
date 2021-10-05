@@ -1,0 +1,162 @@
+---
+title: "Assignment 2"
+author: "Julia Thacker"
+date: "10/3/2021"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+Imported UniversalBank.csv
+```{r}
+library(caret)
+library(ISLR)
+UniversalBank <-read.csv("UniversalBank.csv")
+library(dplyr)
+m_UniversalBank<-select(UniversalBank,Age,Experience,Income,Family,CCAvg,Education,Mortgage,Personal.Loan,Securities.Account,CD.Account,Online,CreditCard)
+```
+Created a data set excluding the ID and Zip code
+```{r}
+m_UniversalBank$Education<-as.factor(m_UniversalBank$Education)
+class(m_UniversalBank$Education)
+```
+Converted the education data into factors and checked their class
+```{r}
+dummy_model<-dummyVars(~Education,data=m_UniversalBank)
+head(predict(dummy_model,m_UniversalBank))
+```
+Transformed Education data into dummy variables
+```{r}
+
+Education <- dummyVars(~Education,m_UniversalBank)
+EduDV<-predict(Education,m_UniversalBank)
+m_UniversalBank<-cbind(m_UniversalBank,EduDV)
+m_UniversalBank<-m_UniversalBank[,-6]
+```
+Added the three education columns that are now dummy variables, into the original data set and removed the original education column
+```{r}
+Test_Data<-data.frame(Age=40,Experience=10,Income=84,Family=2,CCAvg=2,Mortgage=0,Securities.Account=0,CD.Account=0,Online=1,CreditCard=1,Education.1=0,Education.2=1,Education.3=0)
+```
+Added a data frame for the example customer test data
+
+```{r}
+set.seed(123)
+Train_Index=createDataPartition(m_UniversalBank$Age,p=0.6,list=FALSE)
+Train_Data=m_UniversalBank[Train_Index,]
+Validation_Data=Train_Data[-Train_Index,]
+Traval_Data=m_UniversalBank
+```
+Partitioned the data into 60% training data and 40% validation
+```{r}
+train.norm.df<-Train_Data
+valid.norm.df<-Validation_Data
+test.norm.df<-Test_Data
+allbankdata.norm.df<-m_UniversalBank
+traval.norm.df<-Traval_Data
+```
+Copied the original data
+```{r}
+norm.values<-preProcess(Train_Data[,-7],method=c("center","scale"))
+train.norm.df[,-7]<-predict(norm.values,Train_Data[,-7])
+valid.norm.df[,-7]<-predict(norm.values,Validation_Data[,-7])
+test.norm.df<-predict(norm.values,Test_Data)
+allbankdata.norm.df<-predict(norm.values,m_UniversalBank[,-7])
+traval.norm.df[,-7]<-predict(norm.values,traval.norm.df[,-7])
+```
+Normalized all of the data
+
+```{r}
+library(FNN)
+set.seed(123)
+nn<-knn(train=train.norm.df[,c(1:6,8:14)],test=test.norm.df,cl=train.norm.df[,7],k=1,prob=TRUE)
+actual=valid.norm.df$Personal.Loan
+nn_pred=attr(nn,"prob")
+row.names(Train_Data)[attr(nn,"nn.idex")]
+nn
+```
+Performed k-NN classification with default cutoff value of 0.5 and a success class of 1. This customer would accept a personal loan.
+```{r}
+accuracy.df<-data.frame(k=seq(1,14,1),accuracy=rep(0,14))
+for(i in 1:14){
+  knn.pred<-knn(train=train.norm.df[,-7],test=valid.norm.df[,-7],
+                    cl=train.norm.df[,7],k=i,prob=TRUE)
+  accuracy.df[i,2]<-mean(knn.pred==actual)
+}
+accuracy.df
+```
+
+```{r}
+accuracy.df<-data.frame(k=seq(1,14,1),accuracy=rep(0,14))
+for(i in 1:14){
+  knn.pred<-knn(train.norm.df[,-7], valid.norm.df[,-7],
+                    cl=train.norm.df[,7],k=i)
+  accuracy.df[i,2]<-confusionMatrix(knn.pred, as.factor(valid.norm.df[,7]))$overall[1]
+}
+accuracy.df
+```
+Found the best value of K that balances between overfitting and ignoring the predictor information. Tried it two different ways with the same results.
+accuracy.df shows the accuracy of each K value with K=1 being the most accurate with an accuracy of 1.0.
+```{r}
+table(knn.pred,actual)
+mean(knn.pred==actual)
+```
+Confusion Matrix for best value K=1
+```{r}
+Test_Data2.df<-data.frame(Age=40,Experience=10,Income=84,Family=2,CCAvg=2,Mortgage=0,Securities.Account=0,CD.Account=0,Online=1,CreditCard=1,Education.1=0,Education.2=1,Education.3=0)
+```
+Added a data frame for the second example customer test data set
+```{r}
+nn2<-knn(train=train.norm.df[,c(1:6,8:14)],test=Test_Data2.df,cl=train.norm.df[,7],k=1,prob=TRUE)
+nn2
+```
+Classified customer number 2 using best K.
+They would accept the loan offer based on the success class of 1 and default cutoff value of 0.5.
+```{r}
+set.seed(123)
+
+
+Test_Index2=createDataPartition(m_UniversalBank$Age,p=0.2,list=FALSE)
+Test_Data2=m_UniversalBank[Test_Index2,]
+
+Remaining_Data=m_UniversalBank[-Test_Index2,]
+
+Train_Index2=createDataPartition(Remaining_Data$Age,p=0.5,list=FALSE)
+                                 
+Train_Data2=Remaining_Data[Train_Index2,]
+
+Validation_Data2=Remaining_Data[-Train_Index2,]
+
+
+```
+Repartitioned the data into 50% training, 30% validation, and 20% test data
+```{r}
+train.norm2.df<-Train_Data2
+valid.norm2.df<-Validation_Data2
+test.norm2.df<-Test_Data2
+remainingdata.norm.df<-Remaining_Data
+norm.values2<-preProcess(Train_Data2[,-7],method=c("center","scale"))
+train.norm2.df[,-7]<-predict(norm.values2,Train_Data2[,-7])
+valid.norm2.df[,-7]<-predict(norm.values2,Validation_Data2[,-7])
+test.norm2.df[,-7]<-predict(norm.values2,Test_Data2[,-7])
+remainingdata.norm.df[,-7]<-predict(norm.values2,Remaining_Data[,-7])
+
+
+```
+Normalized the repartitioned data
+```{r}
+set.seed(123)
+nn2<-knn(train=train.norm2.df[,-7],test=valid.norm2.df[,-7],cl=train.norm2.df[,7],k=1,prob=TRUE)
+actual=valid.norm2.df$Personal.Loan
+nn2_pred=attr(nn2,"prob")
+table(nn2,actual)
+mean(nn2==actual)
+```
+Used k=1 with the new reparition of the data
+```{r}
+nn3<-knn(train=remainingdata.norm.df[,-7],test=test.norm2.df[,-7],cl=remainingdata.norm.df[,7],k=1,prob=TRUE)
+actual=test.norm2.df$Personal.Loan
+nn3_pred=attr(nn3,"prob")
+table(nn3,actual)
+mean(nn3==actual)
+```
+The model performed better with the test data set. It produced a value of 0.967 compared to 0.951 in the training and validation data.
