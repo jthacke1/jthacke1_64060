@@ -1,0 +1,75 @@
+---
+title: "Assignment 3 - Fundamentals of Machine Learning"
+author: "Julia Thacker"
+date: "10/12/2021"
+output: html_document
+---
+
+```{r}
+
+require(e1071)
+require(caret)
+UniversalBank<-read.csv("UniversalBank.csv")
+```
+Loaded packages needed and read the data
+```{r}
+UniversalBank$CreditCard<-factor(UniversalBank$CreditCard)
+UniversalBank$Online<-factor(UniversalBank$Online)
+UniversalBank$Personal.Loan<-factor(UniversalBank$Personal.Loan)
+```
+Converted each of the necessary variables into factors
+```{r}
+selected.var<-c(10,13,14)
+set.seed(80)
+bank.train.index = createDataPartition(UniversalBank$Personal.Loan,p=0.6, list = FALSE)
+bank.train = UniversalBank[bank.train.index,selected.var]
+bank.valid<-UniversalBank[-bank.train.index,selected.var]
+summary(bank.train)
+summary(bank.valid)
+```
+Selected the required variables, set seed, and partitioned the data into 60% training and 40% validation
+```{r}
+attach(bank.train)
+ftable(CreditCard,Personal.Loan,Online)
+```
+
+Created a pivot table of the training data with Online as a column variable and Credit Card and Personal Loan as row variables.
+
+The probability that a customer who owns a bank credit card and is actively using online banking services would accept the loan offer is 45/513 or 8.77%. This is because there is a total of 513 customers in this data set that both own a bank credit card and are actively using online banking services. Out of those 513 customers, only 45 accepted the loan.
+```{r}
+ftable(Personal.Loan,Online)
+ftable(Personal.Loan,CreditCard)
+```
+Created two pivot tables of the training data - one with Personal Loan as the rows and Online as the columns, and one with Personal Loan as the rows and Credit Card as the columns. 
+```{r}
+prop.table(table(bank.train$Personal.Loan,bank.train$Online),margin=1)
+prop.table(table(bank.train$Personal.Loan,bank.train$CreditCard),margin=1)
+```
+Also made them as pivot tables that generate proportions instead of count to be able to evaluate their probabilities.
+
+```{r}
+83/288
+175/288
+288/3000
+803/2712
+1605/2712
+2712/3000
+```
+Computed:
+i.P(CC = 1 | Loan = 1) = 28.8%
+ii.P(Online = 1 | Loan = 1) = 60.8%
+iii.P(Loan = 1) = 9.6%
+iv.P(CC = 1 | Loan = 0) = 29.6%
+v.P(Online = 1 | Loan = 0) = 59.2%
+vi.P(Loan = 0) = 90.4%
+```{r}
+(0.2881944*0.6076389*0.096)/((0.2881944*0.6076389*0.096)+(0.2960914*0.5918142*0.904))
+```
+8.7% in the pivot table in question B compared to 9.6% in the naive bayes computation. These two probabilities are similar, but the pivot table answer would be a more accurate estimate because the pivot table is calculating an exact answer based on all of the data, but the naive bayes is using assumptions I have made.
+
+```{r}
+bank.nb<-naiveBayes(Personal.Loan ~ .,data = bank.train)
+bank.nb
+```
+Computed the Naive Bayes probability on the training data.
+The probability of the loan being accepted is 9.6% and the probability that the loan is not accepted is 90.4%. This 9.6% is the same value that I calculated manually in the previous method.
