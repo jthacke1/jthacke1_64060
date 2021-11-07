@@ -1,0 +1,77 @@
+---
+title: "Assignment 4 - Fundamentals of Machine Learning"
+author: "Julia Thacker"
+date: "10/27/2021"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ISLR)
+library(factoextra)
+library(flexclust)
+pharmaceuticals<-read.csv("Pharmaceuticals.csv")
+set.seed(123)
+```
+
+```{r}
+pharmaceuticalsdf<-pharmaceuticals[,c(3:11)]
+pharmaceuticalsdf<-scale(pharmaceuticalsdf)
+```
+
+```{r}
+fviz_nbclust(pharmaceuticalsdf,kmeans,method="wss")
+fviz_nbclust(pharmaceuticalsdf,kmeans,method="silhouette")
+```
+
+Filtered the data to only use the numerical variables, variables 1-9. Normalized the data using scale() and visualized the optimal number of clusters.
+Selected k=5 because it is the knee point using the wss method and the returned value using the silhouette method.
+
+```{r}
+rownames(pharmaceuticalsdf)<-c("ABT","AGN","AHM","AZN","AVE","BAY","BMY","CHTT","ELN","LLY","GSK","IVX","JNJ","MRX","MRK","NVS","PFE","PHA","SGP","WPI","WYE")
+distance<-get_dist(pharmaceuticalsdf)
+fviz_dist(distance)
+```
+This plot shows correlations between some of the firms which could mean that they will form a cluster. One example would be LLY, ABT, NVS, SGP, AZN, BMY, and WYE, which are all showing a low value.
+
+```{r}
+k5<-kmeans(pharmaceuticalsdf,centers = 5,nstart=25)
+k5$centers
+k5$size
+k5$cluster[7]
+```
+centers=5 is K=5 and nstart=25 is the number of restarts.
+The sizes of the 5 clusters are 8, 3, 2, 4, and 4
+Also found which cluster firm 7, BMY belongs in and got a result of cluster 1.
+```{r}
+fviz_cluster(k5,data=pharmaceuticalsdf)
+```
+Visualized the five clusters.
+
+```{r}
+pharmaceuticals2<-cbind(pharmaceuticals,"Cluster_Number"=k5$cluster)
+```
+Added a column with the cluster number into the original data set.
+
+
+Cluster 1 has the highest number of firms. Based on the variables of the firms in this cluster, this appears to be where firms with average performance will fall. They have the lowest average revenue growth among the 21 firms in this data set, and most of the other variables fall in the middle of the range of values. The Median Recommendation is Hold for half of these firms, meaning that it is not currently in a good position to be bought or sold. All of the firms in Cluster 1 are traded on the NYSE and more than half are located in the US.
+
+Cluster 2 only contains stocks of 3 of the 21 firms. These three stocks all have the same Asset Turnover of 0.6. they also each have relatively low Net Profit Margin, but they differ in other variables such as Market Capitalization and ROE. Bayer AG has a higher Market Cap and low ROE while the other two firms have the opposite. In the cluster plot, this is shown with Bayer being the bottom point of the cluster. Bayer AG is also the only stock with the location of Germany, while the other two are located in the US. This is also the only cluster that has stocks from three different Exchanges.
+
+Cluster 3 is the smallest cluster with only two firms. These two stocks each have relatively low ROE and ROA compared to the other 19 firms in the data. They also have the highest PE Ratio's out of all of the firms. This likely means that the stocks are overvalued, or they are expected to grow in the future. Allegran, Inc. has the highest PE Ratio at 82.5 and was given a median recommendation of Moderate Buy, possibly because of expected growth.
+
+Cluster 4 includes stocks for four of the 21 firms and they are primarily located in the US except for one located in the UK. They are all traded on the NYSE and two have a Median Recommendation of Hold and two have a Median Recommendation of Moderate Buy. These four stocks have the highest Market Capitalization's of the 21 firms in the dataset. This likely means that these are the largest companies on the list. They also have relatively high asset turnover which means that the firms are performing well.
+
+Cluster 5 also has four firms, but it is more diverse with one firm located in France, one in Ireland and two in the US. These firms were all given a Median Recommendation of either Moderate Buy or Moderate sell. These firms have the highest Revenue Growth, but fairly low Market Capitalizations. This could mean that these are smaller companies that are growing quickly.
+
+Cluster 1 = Typical Companies
+Cluster 2 = 0.6 Asset Turnover
+Cluster 3 = High PE Ratios
+Cluster 4 = Large Companies
+Cluster 5 = Small companies growing quickly 
