@@ -1,0 +1,150 @@
+---
+title: "Assignment 5 - Fundamentals of Machine Learning"
+author: "Julia Thacker"
+date: "11/26/2021"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(caret)
+library(factoextra)
+library(ggplot2)
+library(cluster)
+library(fpc)
+cereals.df<-read.csv("Cereals.csv",row.names=1)
+cereals.df<-na.omit(cereals.df)
+```
+Read the file, labeled the rows by cereal names, and then removed the cereal name column.
+Also removed any cereals with missing values.
+```{r}
+cereals.df$mfr=as.numeric(as.factor(as.character(cereals.df$mfr)))
+cereals.df$type=as.numeric(as.factor(as.character(cereals.df$type)))
+cereals.df$shelf=as.numeric(as.character(cereals.df$shelf))
+```
+Converted any categorical variables into numeric variables.
+```{r}
+d<-dist(cereals.df,method = "euclidean")
+summary(d)
+```
+Computed Euclidean distance on the initial data.
+```{r}
+cereals.df.norm<-sapply(cereals.df,scale)
+row.names(cereals.df.norm)<-row.names(cereals.df)
+head(cereals.df.norm)
+```
+Normalized the data set.
+```{r}
+d.norm<-dist(cereals.df.norm,method = "euclidean")
+summary(d.norm)
+```
+Computed Euclidean distance on the normalized data.
+```{r}
+hc1<-hclust(d.norm,method = "single")
+plot(hc1,hang=-1,ann=FALSE)
+```
+
+```{r}
+hc2<-hclust(d.norm,method = "complete")
+plot(hc2,hang=-1,ann=FALSE)
+```
+
+```{r}
+hc3<-hclust(d.norm,method = "average")
+plot(hc3,hang=-1,ann=FALSE)
+```
+
+```{r}
+hc4<-hclust(d.norm,method = "ward.D")
+plot(hc4,hang=-1,ann=FALSE)
+```
+Computed and plotted the normalized data using single linkage, complete linkage, average linkage, and Ward.
+```{r}
+hc1b<-agnes(cereals.df.norm,method="single")
+print(hc1b$ac)
+```
+
+```{r}
+hc2b<-agnes(cereals.df.norm,method="complete")
+print(hc2b$ac)
+```
+
+```{r}
+hc3b<-agnes(cereals.df.norm,method="average")
+print(hc3b$ac)
+```
+
+```{r}
+hc4b<-agnes(cereals.df.norm,method="ward")
+print(hc4b$ac)
+```
+Used Agnes to compare single linkage, complete linkage, average linkage, and Ward. Ward has the highest Agglomerative coefficient, so this would be the best linkage method.
+```{r}
+hc4<-hclust(d.norm,method = "ward.D2")
+plot(hc4,hang=-1,ann=FALSE)
+```
+Plotted the data using the chosen method, Ward. Based on this plot, I would choose to separate the data into six clusters.
+
+```{r}
+plot(hc4,hang=-1,ann=FALSE)
+rect.hclust(hc4,k=6,border=1:6)
+```
+Plotted the data with visualization of the 6 clusters.
+
+```{r}
+clusters1<-cutree(hc4,k=6)
+clusters1
+```
+Each cereal was assigned a cluster number.
+```{r}
+cerealshcclusters<-cbind(clusters1,cereals.df.norm)
+```
+Combined the cluster number with the original normalized data set.
+
+```{r}
+set.seed(123)
+trainindex<-createDataPartition(y=cereals.df.norm[,1],p=0.5)[[1]]
+partitionA<-cereals.df.norm[trainindex,]
+partitionB<-cereals.df.norm[-trainindex,]
+```
+Partitioned the data into set A and set B.
+```{r}
+kA<-kmeans(partitionA,6)
+kA
+kA$centers
+partionaclusters<-cbind(partitionA,"Cluster_Number"=kA$cluster)
+dist(kA$centers)
+```
+Found the centers of data partition A.
+
+```{r}
+kB<-kmeans(partitionB,kA$centers)
+kB
+kB$centers
+partionbclusters<-cbind(partitionB,"Cluster_Number"=kB$cluster)
+dist(kB$centers)
+```
+Assigned the records in partition B a cluster based on the centroids from partition A.
+
+```{r}
+fviz_cluster(kB,data=partitionB)
+```
+Maypo was in its own cluster in both the partitioned data and the original data set with all cereals. All Bran with extra fiber was in its own cluster in the partioned data set, but was in a cluster of 3 initially. The clusters overall in partition A had fairly even distribution amongst all clusters, except one cluster of two. Partition B had two clusters of only one cereal, and the original distribution resulted in one cluster of one and one cluster of 3. Many of the cereals did stay grouped together similar to how they were grouped in the first 6 clusters with all the data, but there was also a fair amount of separation and shift between cereals once separated into the partioned data sets.
+
+```{r}
+hclust_stability=clusterboot(cereals.df.norm,clustermethod = hclustCBI,method="ward.D2",k=6,count=FALSE)
+hclust_stability
+```
+Summarized the stability of the clusters
+```{r}
+clusters2=hclust_stability$result$partition
+hclust_stability$bootmean
+```
+
+For a goal of finding a cluster of "healthy cereals", the data should still be normalized. This data set contains a variety of variables that are measured in different units on different scales. Normalizing the data allows each of these variables to be compared on the same scale. After normalizing the data, variables such as Calories, Protein, and Sugars, that contribute to how healthy or unhealthy the cereal is, could still be interpreted together and clustered appropriately. This would also allow all the data to be considered when determining whether the cereal is healthy or not. 
