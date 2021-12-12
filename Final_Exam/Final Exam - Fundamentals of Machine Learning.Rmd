@@ -1,0 +1,94 @@
+---
+title: "Final Exam - Fundamentals of Machine Learning"
+author: "Julia Thacker"
+date: "12/01/2021"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(caret)
+library(e1071)
+airlinedata<-read.csv("airline_passenger_satisfaction.csv")
+airlinedata<-na.omit(airlinedata)
+```
+Read the data and removed any NAs
+```{r}
+airlinedata$Gender<-as.factor(airlinedata$Gender)
+airlinedata$type_of_travel<-as.factor(airlinedata$type_of_travel)
+airlinedata$customer_class<-as.factor(airlinedata$customer_class)
+airlinedata$customer_type<-as.factor(airlinedata$customer_type)
+airlinedata$satisfaction<-as.factor(airlinedata$satisfaction)
+airlinedata$inflight_wifi_service<-as.factor(airlinedata$inflight_wifi_service)
+airlinedata$inflight_entertainment<-as.factor(airlinedata$inflight_entertainment)
+```
+Converted necessary variables into factors
+```{r}
+ str(airlinedata)
+```
+
+```{r}
+library(ggplot2)
+ggplot(airlinedata,aes(age, colour =satisfaction))+geom_freqpoly(binwidth=1)
+```
+Plotted the count of passengers that were neutral or dissatisfied vs the ampunt of satisfied passengers by age.
+Younger people were more likely to be dissatisfied.
+```{r}
+set.seed(123)
+airline.train.index = createDataPartition(y=airlinedata[,1],p=0.5)[[1]]
+airline.train = airlinedata[airline.train.index,]
+airline.valid<-airlinedata[-airline.train.index,]
+summary(airline.train)
+summary(airline.valid)
+```
+Partitioned the data into 50% training data and 50% validation data.
+```{r}
+ftable(airline.train$satisfaction,airline.train$inflight_entertainment)
+```
+Created a pivot table of the inflight entertainment survey results based on customer satisfaction.
+
+```{r}
+ftable(airline.train$satisfaction,airline.train$inflight_wifi_service)
+```
+Created a pivot table of the in flight WiFi service survey results based on customer satisfaction.
+
+People that did not use the WiFi service were primarily still satisfied overall.
+More passengers that rated the WiFi service poorly ended up being dissatisfied overall.
+There is a very small amount of people that rated the WiFi service a 5 and ended up being dissatisfied overall.
+
+```{r}
+round(prop.table(table(airline.train$satisfaction,airline.train$inflight_entertainment),margin=1),2)
+round(prop.table(table(airline.train$satisfaction,airline.train$inflight_wifi_service),margin=1),2)
+```
+Created a pivot table for each service that shows the probabilities.
+
+A lower rating given for in flight WiFi service was more likely to result in overall dissatisfaction.
+
+```{r}
+variables<-c(8,15,24)
+set.seed(123)
+airline.train.index2 = createDataPartition(airlinedata$satisfaction,p=0.5,list=FALSE)
+airline.train2 = airlinedata[airline.train.index2,variables]
+airline.valid2<-airlinedata[-airline.train.index2,variables]
+```
+Partitioned the data again using only the 3 necessary variables.
+```{r}
+round(prop.table(table(airline.train2$satisfaction,airline.train2$inflight_entertainment),margin=1),2)
+round(prop.table(table(airline.train2$satisfaction,airline.train2$inflight_wifi_service),margin=1),2)
+```
+Created two pivot tables of this data partition to show the probabilities of each outcome.
+
+```{r}
+airline.nb<-naiveBayes(airline.train2$satisfaction ~ .,data = airline.train2)
+airline.nb
+```
+Computed the Naive Bayes probability.
+
+The probability that a customer will be neutral or dissatisfied is 57%. The probability that a customer will be satisfied is 43%.
+
